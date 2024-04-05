@@ -3,22 +3,6 @@ import csv
 import time
 import numpy as np
 import os
-import sqlite3
-
-# Get the absolute path to the directory containing the Python script
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Specify the path to the folder where the database file will be stored
-database_folder = os.path.join(script_dir, 'database')
-
-# Make sure the database folder exists, create it if it doesn't
-os.makedirs(database_folder, exist_ok=True)
-
-# Specify the name of the SQLite database file
-db_file_name = 'project_database.db'
-
-# Specify the path to the SQLite database file
-db_file_path = os.path.join(database_folder, db_file_name)
 
 # Variables to store statistics
 keystroke_counter = 0
@@ -127,78 +111,36 @@ with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
                 # Calculate the standard deviation of latency
                 latency_std = np.std(latencies) if len(latencies) > 0 else 0
 
-                # Function to initialize the database
-                def initialize_database():
-                    conn = sqlite3.connect(db_file_path)
-                    cursor = conn.cursor()
-
-                    # Create the table if it doesn't exist
-                    cursor.execute('''
-                        CREATE TABLE IF NOT EXISTS keyboard_statistics (
-                            id INTEGER PRIMARY KEY,
-                            timestamp INTEGER,
-                            keystrokes INTEGER,
-                            erase_keys INTEGER,
-                            erase_keys_percentage REAL,
-                            press_and_hold_avg REAL,
-                            press_and_hold_std REAL,
-                            average_latency REAL,
-                            latency_std REAL,
-                            word_counter INTEGER,
-                            word_avg_length REAL,
-                            word_std_length REAL,
-                            phrase_counter INTEGER
-                        )
-                    ''')
-
-                    conn.commit()
-                    conn.close()
-
-                # Function to insert data into the database
-                def insert_data(statistics):
-                    conn = sqlite3.connect(db_file_path)
-                    cursor = conn.cursor()
-
-                    for stat in statistics:
-                        cursor.execute('''
-                            INSERT INTO keyboard_statistics (
-                                timestamp, keystrokes, erase_keys, erase_keys_percentage,
-                                press_and_hold_avg, press_and_hold_std, average_latency,
-                                latency_std, word_counter, word_avg_length, word_std_length,
-                                phrase_counter
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ''', stat)
-
-                    conn.commit()
-                    conn.close()
-
-                # Initialize the database
-                initialize_database()
-
-                # Store statistics in a list
+                # Append statistics to the list
                 statistics.append([
-                        time.time(),
-                        keystroke_counter, 
-                        erase_counter, 
-                        erase_counter_percentage, 
-                        press_and_hold_avg, 
-                        press_and_hold_std, 
-                        average_latency, 
-                        latency_std, 
-                        word_counter, 
-                        word_length_total,
-                        word_std,
-                        phrase_counter + 1
-                    ])
-                
+                    time.time(),
+                    keystroke_counter, 
+                    erase_counter, 
+                    erase_counter_percentage, 
+                    press_and_hold_avg, 
+                    press_and_hold_std, 
+                    average_latency, 
+                    latency_std, 
+                    word_counter, 
+                    word_length_total,
+                    word_std,
+                    phrase_counter + 1
+                ])
+
                 # Optionally, print the statistics
                 print(f"Statistics after 60 seconds: {statistics[-1]}")
 
-                 # Store statistics in the SQLite database
-                insert_data(statistics)
-
-                # Clear the statistics list
-                statistics.clear()
+                # Store statistics in a CSV file
+                #csv_file_path = "./data.csv"
+                with open(csv_file_path, 'a', newline='') as csvfile:
+                    csv_writer = csv.writer(csvfile)
+                    
+                    if csvfile.tell() == 0:
+                        csv_writer.writerow(['Timestamp', 'Keystrokes', 'Erase Keys', 'Erase Keys Percentage',
+                                             'Press and Hold Average Interval', 'Press and Hold Stddev Interval',
+                                             'Average Latency', 'Latency Stddev', 'Word Counter', 'Word Average Length',
+                                             'Word Stddev Length', 'Phrase Counter'])
+                    csv_writer.writerow(statistics[-1])
 
                 # Reset counters and timestamp for the next 60 seconds
                 keystroke_counter = 0
